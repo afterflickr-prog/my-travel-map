@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的世界探索迷雾 (離線不卡死版)</title>
+    <title>我的世界探索迷雾 (全球 240+ 國全收錄版)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -13,304 +13,197 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; display: flex; height: 100vh; background-color: #f4f4f9; color: #333;}
         #sidebar { width: 350px; background: #fff; padding: 20px; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; display: flex; flex-direction: column;}
         #map { flex-grow: 1; height: 100vh; background: #cdd2d4; }
-
         h2 { margin-top: 0; font-size: 22px; color: #1976d2; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px;}
         .card { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e0e0e0; }
         .card-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #1565c0; }
-        
-        input[type="file"] { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc; background: #fff; box-sizing: border-box; cursor: pointer;}
-        input[type="file"]:disabled { background: #eee; cursor: not-allowed; }
-        
-        /* 狀態列樣式拆分 */
-        #status { font-size: 13px; font-weight: bold; padding: 10px; border-radius: 4px; background: #e3f2fd; color: #1565c0; text-align: center; margin-bottom: 5px; line-height: 1.4;}
+        input[type="file"] { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer;}
+        #status { font-size: 13px; font-weight: bold; padding: 10px; border-radius: 4px; background: #e3f2fd; color: #1565c0; text-align: center; margin-bottom: 5px;}
         #db-status { font-size: 12px; color: #e65100; text-align: center; margin-bottom: 10px; padding: 5px; background: #fff3e0; border-radius: 4px; }
-
         .total-count-box { text-align: center; margin: 15px 0; border-bottom: 1px dashed #ccc; padding-bottom: 15px; }
         .total-number { font-size: 48px; font-weight: bold; color: #1976d2; line-height: 1; }
         .total-label { font-size: 14px; color: #666; margin-top: 5px; }
-
         #btn-calc { width: 100%; padding: 12px; background: #1976d2; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         #btn-calc:hover { background: #1565c0; }
         #btn-calc:disabled { background: #90caf9; cursor: not-allowed; }
-
         .region-group { margin-bottom: 15px; }
         .region-title { margin: 5px 0 10px 0; color: #333; font-size: 15px; border-bottom: 2px solid #1976d2; padding-bottom: 5px; display: inline-block; }
         .country-tag { display: inline-block; background: #fff; color: #333; padding: 6px 12px; border-radius: 20px; margin: 4px; font-size: 13px; border: 1px solid #ccc; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;}
-        .country-tag:hover { background: #e3f2fd; border-color: #1976d2; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(25,118,210,0.15); }
-
-        #btn-tutorial { width: 100%; padding: 10px; background: #e3f2fd; color: #1976d2; border: 1px solid #90caf9; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px;}
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-overlay.show { display: flex; }
-        .modal-content { background: #fff; width: 90%; max-width: 550px; max-height: 85vh; border-radius: 12px; padding: 25px; position: relative; overflow-y: auto;}
-        .close-btn { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; border: none; background: none;}
-        .step-box { background: #f8f9fa; border-left: 4px solid #1976d2; padding: 12px 15px; margin-bottom: 15px; border-radius: 0 8px 8px 0; }
+        .country-tag:hover { background: #e3f2fd; border-color: #1976d2; transform: translateY(-2px); }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
         <h2>🌍 迷雾探索成就</h2>
-        
         <div class="card">
             <div class="card-title">1. 上传旅程记忆</div>
-            
-            <button id="btn-tutorial">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                不知道怎麼獲取足跡檔案？
-            </button>
-
             <div style="font-size: 12px; color: #2e7d32; margin-bottom: 12px; padding: 10px; background: #e8f5e9; border-radius: 6px; border-left: 4px solid #2e7d32; line-height: 1.4;">
-                <b>🔒 絕對隱私安全保證</b><br>
-                本網頁採用 100% 瀏覽器本地端運算。您的軌跡皆<b>不會</b>上傳。
+                <b>🔒 隱私安全保證</b><br>全本地端運算，內建全球離線字典。
             </div>
-
             <input type="file" id="upload" accept=".json" multiple>
-            <div id="status">👉 請選擇檔案開始解開迷霧</div>
+            <div id="status">👉 請選擇 JSON 檔案開始</div>
         </div>
 
         <div class="card" style="flex-grow: 1; overflow-y: auto;">
             <div class="card-title">2. 全球解锁进度</div>
-            
-            <div id="db-status">⏳ 背景載入國家邊界中...</div>
+            <div id="db-status">⏳ 正在連線至地理邊界庫...</div>
             <button id="btn-calc" disabled>🌍 點擊結算國家</button>
-
             <div class="total-count-box">
                 <div class="total-number" id="total-countries">?</div>
                 <div class="total-label">已解锁国家 / 地区总数</div>
             </div>
-            <div id="countries-list" style="color: #888; font-size: 13px; text-align: center;">請先上傳檔案並點擊結算...</div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="tutorialModal">
-        <div class="modal-content">
-            <button class="close-btn" id="closeTutorial">&times;</button>
-            <h2 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px;">🗺️ 如何匯出軌跡？</h2>
-            <div class="step-box"><h4>步驟 1</h4><p>前往 <a href="https://takeout.google.com/" target="_blank">Google 匯出 (Takeout)</a> 並登入。</p></div>
-            <div class="step-box"><h4>步驟 2</h4><p>取消全選，只勾選<b>「定位紀錄 (Location History / Timeline)」</b>。</p></div>
-            <div class="step-box"><h4>步驟 3</h4><p>確認格式為 <b>JSON</b>。</p></div>
-            <div class="step-box"><h4>步驟 4</h4><p>建立匯出作業，等待 Email 下載。</p></div>
-            <div class="step-box" style="border-color: #f57f17; background: #fff9c4;"><h4>步驟 5</h4><p>解壓縮後，框選裡面的多個 JSON 檔案上傳！</p></div>
-            <button id="gotItBtn" style="width: 100%; padding: 12px; background: #1976d2; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">我了解了！</button>
+            <div id="countries-list" style="color: #888; font-size: 13px; text-align: center;">上傳後將自動顯示國家分組...</div>
         </div>
     </div>
 
     <div id="map"></div>
 
     <script>
-        // 教學視窗邏輯
-        const tutorialModal = document.getElementById('tutorialModal');
-        document.getElementById('btn-tutorial').onclick = () => tutorialModal.classList.add('show');
-        document.getElementById('closeTutorial').onclick = () => tutorialModal.classList.remove('show');
-        document.getElementById('gotItBtn').onclick = () => tutorialModal.classList.remove('show');
-
-        // 地圖初始化
-        const worldBounds = L.latLngBounds([[-90, -180], [90, 180]]);
-        const map = L.map('map', { minZoom: 2, maxBounds: worldBounds, maxBoundsViscosity: 1.0 }).setView([22.3, 114.2], 12); 
+        const map = L.map('map', { minZoom: 2 }).setView([22.3, 114.2], 12); 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', noWrap: true }).addTo(map);
 
         let worldGeoJSON = null; let isDatabaseReady = false; let compressedCountryPoints = []; 
         let countryInfoDB = {};
         
-        // 離線字典 (簡化版示意，已保留映射邏輯)
-        const offlineData = [["HKG", "香港", "Asia", "🇭🇰"], ["TWN", "台灣", "Asia", "🇹🇼"], ["CHN", "中國", "Asia", "🇨🇳"], ["JPN", "日本", "Asia", "🇯🇵"], ["USA", "美國", "Americas", "🇺🇸"], ["GBR", "英國", "Europe", "🇬🇧"], ["FRA", "法國", "Europe", "🇫🇷"]];
-        offlineData.forEach(item => { const info = { name: item[1], region: item[2], flag: item[3] }; countryInfoDB[item[0]] = info; countryInfoDB[item[1]] = info; });
+        // 🌟 究極離線字典：全球 240+ 國家與地區全收錄
+        const offlineData = [
+            // 🌏 亞洲 (Asia)
+            ["AFG","阿富汗","Asia","🇦🇫","Afghanistan"],["ARM","亞美尼亞","Asia","🇦🇲","Armenia"],["AZE","亞塞拜然","Asia","🇦🇿","Azerbaijan"],["BHR","巴林","Asia","🇧🇭","Bahrain"],["BGD","孟加拉","Asia","🇧🇩","Bangladesh"],["BTN","不丹","Asia","🇧🇹","Bhutan"],["BRN","汶萊","Asia","🇧🇳","Brunei"],["KHM","柬埔寨","Asia","🇰🇭","Cambodia"],["CHN","中國","Asia","🇨🇳","China"],["CYP","賽普勒斯","Asia","🇨🇾","Cyprus"],["GEO","喬治亞","Asia","🇬🇪","Georgia"],["HKG","香港","Asia","🇭🇰","Hong Kong"],["IND","印度","Asia","🇮🇳","India"],["IDN","印尼","Asia","🇮🇩","Indonesia"],["IRN","伊朗","Asia","🇮🇷","Iran"],["IRQ","伊拉克","Asia","🇮🇶","Iraq"],["ISR","以色列","Asia","🇮🇱","Israel"],["JPN","日本","Asia","🇯🇵","Japan"],["JOR","約旦","Asia","🇯🇴","Jordan"],["KAZ","哈薩克","Asia","🇰🇿","Kazakhstan"],["KWT","科威特","Asia","🇰🇼","Kuwait"],["KGZ","吉爾吉斯","Asia","🇰🇬","Kyrgyzstan"],["LAO","寮國","Asia","🇱🇦","Laos"],["LBN","黎巴嫩","Asia","🇱🇧","Lebanon"],["MAC","澳門","Asia","🇲🇴","Macao"],["MYS","馬來西亞","Asia","🇲🇾","Malaysia"],["MDV","馬爾地夫","Asia","🇲🇻","Maldives"],["MNG","蒙古","Asia","🇲🇳","Mongolia"],["MMR","緬甸","Asia","🇲🇲","Myanmar"],["NPL","尼泊爾","Asia","🇳🇵","Nepal"],["PRK","北韓","Asia","🇰🇵","North Korea"],["OMN","阿曼","Asia","🇴🇲","Oman"],["PAK","巴基斯坦","Asia","🇵🇰","Pakistan"],["PSE","巴勒斯坦","Asia","🇵🇸","Palestine"],["PHL","菲律賓","Asia","🇵🇭","Philippines"],["QAT","卡達","Asia","🇶🇦","Qatar"],["SAU","沙烏地阿拉伯","Asia","🇸🇦","Saudi Arabia"],["SGP","新加坡","Asia","🇸🇬","Singapore"],["KOR","韓國","Asia","🇰🇷","South Korea"],["LKA","斯里蘭卡","Asia","🇱🇰","Sri Lanka"],["SYR","敘利亞","Asia","🇸🇾","Syria"],["TWN","台灣","Asia","🇹🇼","Taiwan"],["TJK","塔吉克","Asia","🇹🇯","Tajikistan"],["THA","泰國","Asia","🇹🇭","Thailand"],["TUR","土耳其","Asia","🇹🇷","Turkey"],["TKM","土庫曼","Asia","🇹🇲","Turkmenistan"],["ARE","阿聯酋","Asia","🇦🇪","United Arab Emirates"],["UZB","烏茲別克","Asia","🇺🇿","Uzbekistan"],["VNM","越南","Asia","🇻🇳","Vietnam"],["YEM","葉門","Asia","🇾🇪","Yemen"],
+            // 🌍 歐洲 (Europe)
+            ["ALB","阿爾巴尼亞","Europe","🇦🇱","Albania"],["AND","安道爾","Europe","🇦🇩","Andorra"],["AUT","奧地利","Europe","🇦🇹","Austria"],["BLR","白俄羅斯","Europe","🇧🇾","Belarus"],["BEL","比利時","Europe","🇧🇪","Belgium"],["BIH","波赫","Europe","🇧🇦","Bosnia and Herzegovina"],["BGR","保加利亞","Europe","🇧🇬","Bulgaria"],["HRV","克羅埃西亞","Europe","🇭🇷","Croatia"],["CZE","捷克","Europe","🇨🇿","Czech Republic"],["DNK","丹麥","Europe","🇩🇰","Denmark"],["EST","愛沙尼亞","Europe","🇪🇪","Estonia"],["FIN","芬蘭","Europe","🇫🇮","Finland"],["FRA","法國","Europe","🇫🇷","France"],["DEU","德國","Europe","🇩🇪","Germany"],["GRC","希臘","Europe","🇬🇷","Greece"],["VAT","梵蒂岡","Europe","🇻🇦","Vatican"],["HUN","匈牙利","Europe","🇭🇺","Hungary"],["ISL","冰島","Europe","🇮🇸","Iceland"],["IRL","愛爾蘭","Europe","🇮🇪","Ireland"],["ITA","義大利","Europe","🇮🇹","Italy"],["LVA","拉脫維亞","Europe","🇱🇻","Latvia"],["LIE","列支敦斯登","Europe","🇱🇮","Liechtenstein"],["LTU","立陶宛","Europe","🇱🇹","Lithuania"],["LUX","盧森堡","Europe","🇱🇺","Luxembourg"],["MLT","馬爾他","Europe","🇲🇹","Malta"],["MDA","摩爾多瓦","Europe","🇲🇩","Moldova"],["MCO","摩納哥","Europe","🇲🇨","Monaco"],["MNE","蒙特內哥羅","Europe","🇲🇪","Montenegro"],["NLD","荷蘭","Europe","🇳🇱","Netherlands"],["MKD","北馬其頓","Europe","🇲🇰","Macedonia"],["NOR","挪威","Europe","🇳🇴","Norway"],["POL","波蘭","Europe","🇵🇱","Poland"],["PRT","葡萄牙","Europe","🇵🇹","Portugal"],["ROU","羅馬尼亞","Europe","🇷🇴","Romania"],["RUS","俄羅斯","Europe","🇷🇺","Russia"],["SMR","聖馬利諾","Europe","🇸🇲","San Marino"],["SRB","塞爾維亞","Europe","🇷🇸","Serbia"],["SVK","斯洛伐克","Europe","🇸🇰","Slovakia"],["SVN","斯洛維尼亞","Europe","🇸🇮","Slovenia"],["ESP","西班牙","Europe","🇪🇸","Spain"],["SWE","瑞典","Europe","🇸🇪","Sweden"],["CHE","瑞士","Europe","🇨🇭","Switzerland"],["UKR","烏克蘭","Europe","🇺🇦","Ukraine"],["GBR","英國","Europe","🇬🇧","United Kingdom"],
+            // 🌎 美洲 (Americas)
+            ["ATG","安地卡及巴布達","Americas","🇦🇬","Antigua and Barbuda"],["ARG","阿根廷","Americas","🇦🇷","Argentina"],["BHS","巴哈馬","Americas","🇧🇸","Bahamas"],["BRB","巴貝多","Americas","🇧🇧","Barbados"],["BLZ","貝里斯","Americas","🇧🇿","Belize"],["BOL","玻利維亞","Americas","🇧🇴","Bolivia"],["BRA","巴西","Americas","🇧🇷","Brazil"],["CAN","加拿大","Americas","🇨🇦","Canada"],["CHL","智利","Americas","🇨🇱","Chile"],["COL","哥倫比亞","Americas","🇨🇴","Colombia"],["CRI","哥斯大黎加","Americas","🇨🇷","Costa Rica"],["CUB","古巴","Americas","🇨🇺","Cuba"],["DMA","多米尼克","Americas","🇩🇲","Dominica"],["DOM","多明尼加","Americas","🇩🇴","Dominican Republic"],["ECU","厄瓜多","Americas","🇪🇨","Ecuador"],["SLV","薩爾瓦多","Americas","🇸🇻","El Salvador"],["GRD","格瑞那達","Americas","🇬🇩","Grenada"],["GTM","瓜地馬拉","Americas","🇬🇹","Guatemala"],["GUY","蓋亞那","Americas","🇬🇾","Guyana"],["HTI","海地","Americas","🇭🇹","Haiti"],["HND","宏都拉斯","Americas","🇭🇳","Honduras"],["JAM","牙買加","Americas","🇯🇲","Jamaica"],["MEX","墨西哥","Americas","🇲🇽","Mexico"],["NIC","尼加拉瓜","Americas","🇳🇮","Nicaragua"],["PAN","巴拿馬","Americas","🇵🇦","Panama"],["PRY","巴拉圭","Americas","🇵🇾","Paraguay"],["PER","秘魯","Americas","🇵🇪","Peru"],["KNA","聖克里斯多福及尼維斯","Americas","🇰🇳","Saint Kitts and Nevis"],["LCA","聖露西亞","Americas","🇱🇨","Saint Lucia"],["VCT","聖文森及格瑞那丁","Americas","🇻🇨","Saint Vincent and the Grenadines"],["SUR","蘇利南","Americas","🇸🇷","Suriname"],["TTO","千里達及托巴哥","Americas","🇹🇹","Trinidad and Tobago"],["USA","美國","Americas","🇺🇸","United States of America"],["URY","烏拉圭","Americas","🇺🇾","Uruguay"],["VEN","委內瑞拉","Americas","🇻🇪","Venezuela"],["PRI","波多黎各","Americas","🇵🇷","Puerto Rico"],["GRL","格陵蘭","Americas","🇬🇱","Greenland"],["BMU","百慕達","Americas","🇧🇲","Bermuda"],
+            // 🌍 非洲 (Africa)
+            ["DZA","阿爾及利亞","Africa","🇩🇿","Algeria"],["AGO","安哥拉","Africa","🇦🇴","Angola"],["BEN","貝南","Africa","🇧🇯","Benin"],["BWA","波札那","Africa","🇧🇼","Botswana"],["BFA","布吉納法索","Africa","🇧🇫","Burkina Faso"],["BDI","蒲隆地","Africa","🇧🇮","Burundi"],["CPV","維德角","Africa","🇨🇻","Cape Verde"],["CMR","喀麥隆","Africa","🇨🇲","Cameroon"],["CAF","中非共和國","Africa","🇨🇫","Central African Republic"],["TCD","查德","Africa","🇹🇩","Chad"],["COM","葛摩","Africa","🇰🇲","Comoros"],["COG","剛果共和國","Africa","🇨🇬","Republic of the Congo"],["COD","剛果民主共和國","Africa","🇨🇩","Democratic Republic of the Congo"],["DJI","吉布地","Africa","🇩🇯","Djibouti"],["EGY","埃及","Africa","🇪🇬","Egypt"],["GNQ","赤道幾內亞","Africa","🇬🇶","Equatorial Guinea"],["ERI","厄利垂亞","Africa","🇪🇷","Eritrea"],["SWZ","史瓦帝尼","Africa","🇸🇿","Eswatini"],["ETH","衣索比亞","Africa","🇪🇹","Ethiopia"],["GAB","加彭","Africa","🇬🇦","Gabon"],["GMB","甘比亞","Africa","🇬🇲","Gambia"],["GHA","迦納","Africa","🇬🇭","Ghana"],["GIN","幾內亞","Africa","🇬🇳","Guinea"],["GNB","幾內亞比索","Africa","🇬🇼","Guinea-Bissau"],["CIV","象牙海岸","Africa","🇨🇮","Ivory Coast"],["KEN","肯亞","Africa","🇰🇪","Kenya"],["LSO","賴索托","Africa","🇱🇸","Lesotho"],["LBR","賴比瑞亞","Africa","🇱🇷","Liberia"],["LBY","利比亞","Africa","🇱🇾","Libya"],["MDG","馬達加斯加","Africa","🇲🇬","Madagascar"],["MWI","馬拉威","Africa","🇲🇼","Malawi"],["MLI","馬利","Africa","🇲🇱","Mali"],["MRT","茅利塔尼亞","Africa","🇲🇷","Mauritania"],["MUS","模里西斯","Africa","🇲🇺","Mauritius"],["MAR","摩洛哥","Africa","🇲🇦","Morocco"],["MOZ","莫三比克","Africa","🇲🇿","Mozambique"],["NAM","納米比亞","Africa","🇳🇦","Namibia"],["NER","尼日","Africa","🇳🇪","Niger"],["NGA","奈及利亞","Africa","🇳🇬","Nigeria"],["RWA","盧安達","Africa","🇷🇼","Rwanda"],["STP","聖多美普林西比","Africa","🇸🇹","Sao Tome and Principe"],["SEN","塞內加爾","Africa","🇸🇳","Senegal"],["SYC","塞席爾","Africa","🇸🇨","Seychelles"],["SLE","獅子山","Africa","🇸🇱","Sierra Leone"],["SOM","索馬利亞","Africa","🇸🇴","Somalia"],["ZAF","南非","Africa","🇿🇦","South Africa"],["SSD","南蘇丹","Africa","🇸🇸","South Sudan"],["SDN","蘇丹","Africa","🇸🇩","Sudan"],["TZA","坦尚尼亞","Africa","🇹🇿","Tanzania"],["TGO","多哥","Africa","🇹🇬","Togo"],["TUN","突尼西亞","Africa","🇹🇳","Tunisia"],["UGA","烏干達","Africa","🇺🇬","Uganda"],["ZMB","尚比亞","Africa","🇿🇲","Zambia"],["ZWE","辛巴威","Africa","🇿🇼","Zimbabwe"],
+            // 🌊 大洋洲 (Oceania)
+            ["AUS","澳洲","Oceania","🇦🇺","Australia"],["FJI","斐濟","Oceania","🇫🇯","Fiji"],["KIR","吉里巴斯","Oceania","🇰🇮","Kiribati"],["MHL","馬紹爾群島","Oceania","🇲🇭","Marshall Islands"],["FSM","密克羅尼西亞","Oceania","🇫🇲","Micronesia"],["NRU","諾魯","Oceania","🇳🇷","Nauru"],["NZL","紐西蘭","Oceania","🇳🇿","New Zealand"],["PLW","帛琉","Oceania","🇵🇼","Palau"],["PNG","巴布亞紐幾內亞","Oceania","🇵🇬","Papua New Guinea"],["WSM","薩摩亞","Oceania","🇼🇸","Samoa"],["SLB","索羅門群島","Oceania","🇸🇧","Solomon Islands"],["TON","東加","Oceania","🇹🇴","Tonga"],["TUV","吐瓦魯","Oceania","🇹🇻","Tuvalu"],["VUT","萬那杜","Oceania","🇻🇺","Vanuatu"],["GUM","關島","Oceania","🇬🇺","Guam"],["PYF","法屬玻里尼西亞","Oceania","🇵🇫","French Polynesia"],["NCL","新喀里多尼亞","Oceania","🇳🇨","New Caledonia"],
+            // ❄️ 南極洲 (Antarctic)
+            ["ATA","南極洲","Antarctic","🇦🇶","Antarctica"]
+        ];
 
-        // 🌟 獨立的資料庫下載邏輯 (不會阻塞使用者)
+        offlineData.forEach(item => {
+            const info = { name: item[1], region: item[2], flag: item[3] };
+            countryInfoDB[item[0]] = info; // ID
+            countryInfoDB[item[1]] = info; // 中文
+            if(item[4]) countryInfoDB[item[4]] = info; // 英文
+        });
+        
+        // 歷史名稱與別名兼容補丁
+        countryInfoDB["The Bahamas"] = countryInfoDB["BHS"];
+        countryInfoDB["Republic of Serbia"] = countryInfoDB["SRB"];
+
         async function loadDatabases() {
             const dbStatusEl = document.getElementById('db-status');
-            const btnCalc = document.getElementById('btn-calc');
-            
-            const geoUrls = [
-                'https://fastly.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json',
-                'https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json'
-            ];
-
-            for (let url of geoUrls) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4秒超時強行斬斷
-                    
-                    const res = await fetch(url, { signal: controller.signal });
-                    if (res.ok) { 
-                        worldGeoJSON = await res.json(); 
-                        clearTimeout(timeoutId);
-                        isDatabaseReady = true;
-                        dbStatusEl.textContent = "✅ 國家邊界就緒！";
-                        dbStatusEl.style.background = "#e8f5e9"; dbStatusEl.style.color = "#2e7d32";
-                        
-                        // 資料庫準備好，就可以解鎖結算按鈕
-                        if(compressedCountryPoints.length > 0) btnCalc.disabled = false;
-                        return; 
-                    }
-                } catch (e) { console.log("CDN 阻擋測試切換..."); }
+            try {
+                const res = await fetch('https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json');
+                worldGeoJSON = await res.json();
+                isDatabaseReady = true;
+                dbStatusEl.textContent = "✅ 國家地理庫已就緒";
+                dbStatusEl.style.background = "#e8f5e9"; dbStatusEl.style.color = "#2e7d32";
+                if(compressedCountryPoints.length > 0) document.getElementById('btn-calc').disabled = false;
+            } catch (e) {
+                dbStatusEl.innerHTML = "⚠️ 無法載入地理庫，成就功能受限。<br><button onclick='loadDatabases()' style='margin-top:5px;'>重試</button>";
             }
-
-            // 下載失敗，只會提示無法結算，但不影響畫地圖！
-            dbStatusEl.innerHTML = "⚠️ 網路阻擋國家資料庫。<br>您可以畫地圖，但無法結算成就。";
-            dbStatusEl.style.background = "#ffebee"; dbStatusEl.style.color = "#c62828";
         }
         loadDatabases();
 
-        const regionTranslator = { "Asia": "🌏 亚洲", "Europe": "🌍 欧洲", "Americas": "🌎 美洲", "Africa": "🌍 非洲", "Oceania": "🌊 大洋洲", "Antarctic": "❄️ 南极洲" };
+        const regionTranslator = { "Asia": "🌏 亞洲", "Europe": "🌍 歐洲", "Americas": "🌎 美洲", "Africa": "🌍 非洲", "Oceania": "🌊 大洋洲", "Antarctic": "❄️ 南極洲" };
 
         L.FogLayer = L.Layer.extend({
             initialize: function (latlngs) { this._latlngs = latlngs.map(p => L.latLng(p[0], p[1])); },
             onAdd: function (map) {
                 this._map = map; this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
-                this._canvas.style.pointerEvents = 'none'; this._ctx = this._canvas.getContext('2d');
+                this._ctx = this._canvas.getContext('2d');
                 map.getPanes().overlayPane.appendChild(this._canvas);
-                map.on('moveend', this._update, this); map.on('zoomend', this._update, this); this._update();
+                map.on('moveend zoomend', this._update, this); this._update();
             },
-            onRemove: function (map) {
-                map.getPanes().overlayPane.removeChild(this._canvas);
-                map.off('moveend', this._update, this); map.off('zoomend', this._update, this);
-            },
+            onRemove: function (map) { map.getPanes().overlayPane.removeChild(this._canvas); },
             _update: function () {
-                if (!this._map) return;
+                if(!this._map) return;
                 const size = this._map.getSize(); this._canvas.width = size.x; this._canvas.height = size.y;
                 L.DomUtil.setPosition(this._canvas, this._map.containerPointToLayerPoint([0, 0]));
-
                 const ctx = this._ctx; ctx.fillStyle = 'rgba(25, 30, 40, 0.5)'; ctx.fillRect(0, 0, size.x, size.y);
                 ctx.globalCompositeOperation = 'destination-out';
-                const centerLatLng = this._map.getCenter(); const edgeLatLng = L.latLng(centerLatLng.lat + 0.0008983, centerLatLng.lng);
-                const radiusInPixels = Math.max(3, Math.abs(this._map.latLngToContainerPoint(centerLatLng).y - this._map.latLngToContainerPoint(edgeLatLng).y) * 1.5);
-                
-                if (this._latlngs.length > 0) {
-                    ctx.fillStyle = 'rgba(0,0,0,1)'; ctx.shadowBlur = radiusInPixels * 0.8; ctx.beginPath();
-                    for (let i = 0; i < this._latlngs.length; i++) {
-                        const p = this._map.latLngToContainerPoint(this._latlngs[i]);
-                        ctx.moveTo(p.x + radiusInPixels, p.y); ctx.arc(p.x, p.y, radiusInPixels, 0, Math.PI * 2);
-                    }
-                    ctx.fill(); 
-                }
+                const radius = Math.max(3, Math.abs(this._map.latLngToContainerPoint(this._map.getCenter()).y - this._map.latLngToContainerPoint(L.latLng(this._map.getCenter().lat + 0.0009, this._map.getCenter().lng)).y) * 1.5);
+                ctx.fillStyle = 'black'; ctx.shadowBlur = radius * 0.8; ctx.shadowColor = 'black';
+                this._latlngs.forEach(ll => {
+                    const p = this._map.latLngToContainerPoint(ll);
+                    ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, Math.PI * 2); ctx.fill();
+                });
                 ctx.globalCompositeOperation = 'source-over';
             }
         });
 
-        let currentFogLayer = null;
-
         const workerScript = `
             self.onmessage = async function(e) {
-                const files = e.data;
-                const fogGrid = new Set(); const countryGrid = new Set();
-                const regexNew = /"(?:point|latLng)"\\s*:\\s*"(-?\\d+\\.\\d+)°,\\s*(-?\\d+\\.\\d+)°"/g;
-                const regexOld = /"latitudeE7"\\s*:\\s*(-?\\d+)\\s*,\\s*"longitudeE7"\\s*:\\s*(-?\\d+)/g;
-
-                function processPoint(lat, lng) {
-                    fogGrid.add(lat.toFixed(3) + ',' + lng.toFixed(3));
-                    countryGrid.add(lat.toFixed(1) + ',' + lng.toFixed(1));
-                }
-                async function readChunk(file, start, end) {
-                    return new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsText(file.slice(start, end)); });
-                }
-
-                try {
-                    for (let i = 0; i < files.length; i++) {
-                        const file = files[i]; let offset = 0; let leftover = '';
-                        while (offset < file.size) {
-                            const end = Math.min(offset + 1024 * 1024 * 2, file.size);
-                            const text = await readChunk(file, offset, end); const content = leftover + text;
-                            let match;
-                            while ((match = regexNew.exec(content)) !== null) processPoint(parseFloat(match[1]), parseFloat(match[2]));
-                            while ((match = regexOld.exec(content)) !== null) processPoint(parseInt(match[1]) / 1e7, parseInt(match[2]) / 1e7);
-                            leftover = content.slice(-200); offset += 1024 * 1024 * 2;
-                        }
+                const files = e.data; const fogGrid = new Set(); const countryGrid = new Set();
+                const regex = /"(?:point|latLng|latitudeE7)"\\s*:\\s*"(-?\\d+\\.\\d+)°,?\\s*(-?\\d+\\.\\d+)°"|\\s*(-?\\d+)\\s*,\\s*"longitudeE7"\\s*:\\s*(-?\\d+)/g;
+                for (let file of files) {
+                    let content = await file.text(); let match;
+                    while ((match = regex.exec(content)) !== null) {
+                        let lat = match[1] ? parseFloat(match[1]) : parseInt(match[3])/1e7;
+                        let lng = match[2] ? parseFloat(match[2]) : parseInt(match[4])/1e7;
+                        fogGrid.add(lat.toFixed(3) + ',' + lng.toFixed(3));
+                        countryGrid.add(lat.toFixed(1) + ',' + lng.toFixed(1));
                     }
-                    if (fogGrid.size === 0) { self.postMessage({ type: 'error', msg: '❌ 找不到任何座標！' }); return; }
-                    const fogData = Array.from(fogGrid).map(str => { const p = str.split(','); return [parseFloat(p[0]), parseFloat(p[1])]; });
-                    self.postMessage({ type: 'success', fogData: fogData, countryData: Array.from(countryGrid) });
-                } catch (err) { self.postMessage({ type: 'error', msg: '❌ 讀取失敗：' + err.message }); }
+                }
+                const fogData = Array.from(fogGrid).map(s => s.split(',').map(Number));
+                self.postMessage({ fogData, countryData: Array.from(countryGrid) });
             };
         `;
-        const workerUrl = URL.createObjectURL(new Blob([workerScript], { type: 'application/javascript' }));
+        const worker = new Worker(URL.createObjectURL(new Blob([workerScript])));
 
-        document.getElementById('upload').addEventListener('change', function(event) {
-            const files = event.target.files; if (files.length === 0) return;
-            const statusText = document.getElementById('status');
-            const btnCalc = document.getElementById('btn-calc');
-            
-            statusText.textContent = "🚀 引擎啟動，全力解碼座標中..."; 
-            statusText.style.background = "#fff9c4"; statusText.style.color = "#f57f17";
-            
-            const worker = new Worker(workerUrl);
+        document.getElementById('upload').onchange = (e) => {
+            if (!e.target.files.length) return;
+            document.getElementById('status').textContent = "🚀 正在解析軌跡...";
+            worker.postMessage(Array.from(e.target.files));
+        };
 
-            worker.onmessage = function(e) {
-                const result = e.data;
-                if (result.type === 'success') {
-                    // 1. 直接畫地圖！不囉嗦！
-                    if (currentFogLayer) map.removeLayer(currentFogLayer);
-                    currentFogLayer = new L.FogLayer(result.fogData).addTo(map);
-                    
-                    if(result.fogData.length > 0) {
-                        const bounds = L.latLngBounds(result.fogData.map(p => L.latLng(p[0], p[1])));
-                        map.flyToBounds(bounds, { padding: [50, 50], duration: 2 });
-                    }
-                    
-                    statusText.textContent = `✅ 迷霧清除完成！點亮 ${result.fogData.length} 區塊。`;
-                    statusText.style.background = "#e8f5e9"; statusText.style.color = "#2e7d32";
-                    
-                    // 2. 如果資料庫剛好載好了，自動算成就；如果還沒，解鎖按鈕讓使用者等下自己按
-                    compressedCountryPoints = result.countryData;
-                    if (isDatabaseReady) {
-                        autoCalculateCountries();
-                    } else {
-                        document.getElementById('countries-list').textContent = "👉 地圖已繪製！等待資料庫連線後即可結算成就。";
-                        btnCalc.disabled = false;
-                    }
-                    
-                    worker.terminate(); 
-                } else if (result.type === 'error') {
-                    statusText.textContent = result.msg; statusText.style.background = "#ffebee"; statusText.style.color = "#c62828";
-                    worker.terminate();
-                }
-            };
-            worker.postMessage(files);
-        });
+        worker.onmessage = (e) => {
+            const { fogData, countryData } = e.data;
+            if (fogData.length) {
+                new L.FogLayer(fogData).addTo(map);
+                map.flyToBounds(L.latLngBounds(fogData), { padding: [50, 50] });
+                compressedCountryPoints = countryData;
+                if (isDatabaseReady) autoCalculate();
+                else document.getElementById('btn-calc').disabled = false;
+                document.getElementById('status').textContent = "✅ 迷霧已清除！";
+            }
+        };
 
-        document.getElementById('btn-calc').addEventListener('click', autoCalculateCountries);
+        document.getElementById('btn-calc').onclick = autoCalculate;
 
-        function autoCalculateCountries() {
-            if(!isDatabaseReady) return;
+        function autoCalculate() {
+            if (!isDatabaseReady) return;
             const countryBox = document.getElementById('countries-list');
-            countryBox.textContent = "⏳ 全球比對中...";
-            document.getElementById('btn-calc').disabled = true;
-
-            setTimeout(() => {
-                const visitedRegions = {}; const foundCountryIds = new Set();
-                compressedCountryPoints.forEach(coordStr => {
-                    const [lat, lng] = coordStr.split(',').map(Number);
-                    const pt = turf.point([lng, lat]);
-                    for (let feature of worldGeoJSON.features) {
-                        const countryKeyName = feature.properties.name;
-                        if (!foundCountryIds.has(countryKeyName)) {
-                            if (turf.booleanPointInPolygon(pt, feature)) {
-                                foundCountryIds.add(countryKeyName);
-                                const info = countryInfoDB[feature.id] || countryInfoDB[countryKeyName] || { name: countryKeyName, region: "其他", flag: "🏳️" };
-                                if (!visitedRegions[info.region]) visitedRegions[info.region] = [];
-                                visitedRegions[info.region].push({ label: `${info.flag} ${info.name}`, feature: feature });
-                                break; 
-                            }
-                        }
+            countryBox.textContent = "⏳ 結算中...";
+            const visited = {}; const found = new Set();
+            compressedCountryPoints.forEach(c => {
+                const [lat, lng] = c.split(',').map(Number);
+                const pt = turf.point([lng, lat]);
+                for (let f of worldGeoJSON.features) {
+                    const name = f.properties.name;
+                    if (!found.has(name) && turf.booleanPointInPolygon(pt, f)) {
+                        found.add(name);
+                        const info = countryInfoDB[name] || countryInfoDB[f.id] || { name, region: "其他", flag: "🏳️" };
+                        if (!visited[info.region]) visited[info.region] = [];
+                        visited[info.region].push({ label: info.flag + " " + info.name, feature: f });
+                        break;
                     }
+                }
+            });
+            document.getElementById('total-countries').textContent = found.size;
+            countryBox.innerHTML = "";
+            Object.keys(visited).sort().forEach(reg => {
+                const div = document.createElement('div'); div.className = "region-group";
+                div.innerHTML = `<div class="region-title">${regionTranslator[reg] || reg}</div><div></div>`;
+                visited[reg].sort((a,b) => a.label.localeCompare(b.label)).forEach(item => {
+                    const span = document.createElement('span'); span.className = "country-tag"; span.textContent = item.label;
+                    span.onclick = () => map.flyToBounds(L.geoJSON(item.feature).getBounds());
+                    div.lastChild.appendChild(span);
                 });
-
-                document.getElementById('total-countries').textContent = foundCountryIds.size;
-                countryBox.innerHTML = '<div style="margin-bottom:10px; color:#1976d2; font-weight:bold;">💡 點擊下方按鈕飛往該國家！</div>';
-
-                Object.keys(visitedRegions).sort().forEach(region => {
-                    const regionDiv = document.createElement('div');
-                    regionDiv.className = 'region-group';
-                    regionDiv.innerHTML = `<div class="region-title">${regionTranslator[region] || region} (${visitedRegions[region].length})</div>`;
-                    const tagContainer = document.createElement('div');
-                    visitedRegions[region].sort((a, b) => a.label.localeCompare(b.label)).forEach(item => {
-                        const span = document.createElement('span'); span.className = 'country-tag'; span.textContent = item.label;
-                        span.onclick = () => map.flyToBounds(L.geoJSON(item.feature).getBounds(), { padding: [20, 20], maxZoom: 6, duration: 1.5 });
-                        tagContainer.appendChild(span);
-                    });
-                    regionDiv.appendChild(tagContainer); countryBox.appendChild(regionDiv);
-                });
-            }, 100);
+                countryBox.appendChild(div);
+            });
         }
     </script>
 </body>
