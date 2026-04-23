@@ -291,43 +291,40 @@
 
 async function loadDatabases() {
             const statusEl = document.getElementById('status');
-            statusEl.textContent = "⏳ 连线至全球地理库中...";
+            statusEl.textContent = "⏳ 连线至全球地理库中 (測試多重節點)...";
             
-            // 🌟 準備三個不同的全球 CDN 節點作為備用
+            // 🌟 終極防卡死：優先嘗試讀取自己 GitHub 上的檔案，再備用多個不同的 CDN
             const geoUrls = [
+                './countries.geo.json', 
                 'https://fastly.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json',
-                'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json',
-                'https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json'
+                'https://gcore.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json',
+                'https://testingcf.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json'
             ];
 
-            // 🌟 加入 5 秒超時機制，防止卡死無限等待
-            const fetchWithTimeout = (url, timeout = 5000) => {
-                return Promise.race([
-                    fetch(url),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
-                ]);
-            };
-
-            // 🌟 依序嘗試各個節點，只要有一個成功就過關
             for (let url of geoUrls) {
                 try {
-                    const res = await fetchWithTimeout(url);
+                    // 🌟 使用 AbortController 強制斬斷超過 4 秒沒反應的「殭屍連線」
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 4000); 
+                    
+                    const res = await fetch(url, { signal: controller.signal });
                     if (res.ok) { 
                         worldGeoJSON = await res.json(); 
+                        clearTimeout(timeoutId); // 成功就取消倒數計時
                         isDatabaseReady = true;
                         statusEl.textContent = "✅ 资料库载入完毕！";
                         statusEl.style.background = "#e8f5e9";
                         statusEl.style.color = "#2e7d32";
                         document.getElementById('upload').disabled = false;
-                        return; // 成功載入，結束函數
+                        return; // 成功！結束函數
                     }
                 } catch (e) {
-                    console.log(`節點連線失敗或超時，自動切換下一個...`);
+                    console.log(`[連線測試] ${url} 失敗或超時，自動切換下一個...`);
                 }
             }
 
-            // 🌟 如果三個節點都被你的網路擋住了，顯示重試按鈕
-            statusEl.innerHTML = "⚠️ 網路或 CDN 遭阻擋，無法下載地理邊界。<br><button onclick='loadDatabases()' style='margin-top:8px; padding:5px 10px; cursor:pointer; border-radius:4px; border:1px solid #ccc; background:#fff;'>🔄 更換節點重試</button>";
+            // 如果全部失敗，才會顯示這個紅色的重試按鈕
+            statusEl.innerHTML = "⚠️ 網路遭阻擋，無法下載邊界。<br><button onclick='loadDatabases()' style='margin-top:8px; padding:5px 10px; cursor:pointer; border-radius:4px; border:1px solid #ccc; background:#fff;'>🔄 重試</button>";
             statusEl.style.background = "#ffebee";
             statusEl.style.color = "#c62828";
         }
