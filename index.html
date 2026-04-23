@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的世界探索迷雾 (純淨終極版)</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; display: flex; height: 100vh; background-color: #f4f4f9; color: #333;}
+        #sidebar { width: 350px; background: #fff; padding: 20px; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; display: flex; flex-direction: column;}
+        #map { flex-grow: 1; height: 100vh; background: #cdd2d4; }
+
+        h2 { margin-top: 0; font-size: 22px; color: #1976d2; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px;}
+        .card { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e0e0e0; }
+        .card-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #1565c0; }
+        
+        input[type="file"] { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc; background: #fff; box-sizing: border-box; cursor: pointer;}
+        input[type="file"]:disabled { background: #eee; cursor: not-allowed; }
+        
+        #status { font-size: 13px; font-weight: bold; padding: 10px; border-radius: 4px; background: #fff3e0; color: #e65100; text-align: center; margin-bottom: 10px; line-height: 1.4;}
+        
+        .total-count-box { text-align: center; margin: 15px 0; border-bottom: 1px dashed #ccc; padding-bottom: 15px; }
+        .total-number { font-size: 48px; font-weight: bold; color: #1976d2; line-height: 1; }
+        .total-label { font-size: 14px; color: #666; margin-top: 5px; }
+
+        #btn-calc { width: 100%; padding: 12px; background: #1976d2; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; display: none; transition: 0.2s;}
+        #btn-calc:hover { background: #1565c0; }
+        #btn-calc:disabled { background: #90caf9; cursor: not-allowed; }
+
+        .region-group { margin-bottom: 15px; }
+        .region-title { margin: 5px 0 10px 0; color: #333; font-size: 15px; border-bottom: 2px solid #1976d2; padding-bottom: 5px; display: inline-block; }
+        
+        .country-tag { 
+            display: inline-block; background: #fff; color: #333; 
+            padding: 6px 12px; border-radius: 20px; margin: 4px; font-size: 13px;
+            border: 1px solid #ccc; box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+            transition: all 0.2s ease-in-out; cursor: pointer;
+        }
+        .country-tag:hover { 
+            background: #e3f2fd; border-color: #1976d2; 
+            transform: translateY(-2px) scale(1.05); 
+            box-shadow: 0 4px 6px rgba(25,118,210,0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>🌍 迷雾探索成就</h2>
+        
+        <div class="card">
+            <div class="card-title">1. 上传旅程记忆</div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 8px;">匯入 Google Timeline JSON 檔案 (支援多選)</div>
+<div style="font-size: 12px; color: #d32f2f; margin-bottom: 8px; padding: 8px; background: #ffebee; border-radius: 4px; border-left: 3px solid #d32f2f;">
+    <b>🔒 絕對隱私安全聲明</b><br>
+    本網頁採用 100% 瀏覽器本地端運算。您的所有軌跡檔案皆<b>不會</b>上傳至任何伺服器，請安心匯入。
+</div>            
+<input type="file" id="upload" accept=".json" multiple disabled>
+            <div id="status">⏳ 连线至全球地理库中...</div>
+        </div>
+
+        <div class="card" style="flex-grow: 1; overflow-y: auto;">
+            <div class="card-title">2. 全球解锁进度</div>
+            <button id="btn-calc">🌍 點擊結算解鎖國家 (較耗時)</button>
+            <div class="total-count-box">
+                <div class="total-number" id="total-countries">?</div>
+                <div class="total-label">已解锁国家 / 地区总数</div>
+            </div>
+            <div id="countries-list" style="color: #888; font-size: 13px; text-align: center;">請先上傳檔案並點擊結算...</div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // 限制世界地圖邊界與防重複
+        const worldBounds = L.latLngBounds([[-90, -180], [90, 180]]);
+        const map = L.map('map', {
+            minZoom: 2,
+            maxBounds: worldBounds,
+            maxBoundsViscosity: 1.0
+        }).setView([22.3, 114.2], 12); 
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            noWrap: true
+        }).addTo(map);
+
+        let worldGeoJSON = null;
+        let countryInfoDB = {}; 
+        let isDatabaseReady = false;
+        let compressedCountryPoints = []; 
+
+        // 超級離線字典
+        const offlineData = [
+            ["HKG", "香港", "Asia", "🇭🇰"], ["MAC", "澳門", "Asia", "🇲🇴"], ["TWN", "台灣", "Asia", "🇹🇼"],
+            ["CHN", "中國", "Asia", "🇨🇳"], ["JPN", "日本", "Asia", "🇯🇵"], ["KOR", "韓國", "Asia", "🇰🇷"],
+            ["PRK", "北韓", "Asia", "🇰🇵"], ["VNM", "越南", "Asia", "🇻🇳"], ["THA", "泰國", "Asia", "🇹🇭"],
+            ["SGP", "新加坡", "Asia", "🇸🇬"], ["MYS", "馬來西亞", "Asia", "🇲🇾"], ["IDN", "印尼", "Asia", "🇮🇩"],
+            ["PHL", "菲律賓", "Asia", "🇵🇭"], ["IND", "印度", "Asia", "🇮🇳"], ["KHM", "柬埔寨", "Asia", "🇰🇭"],
+            ["MMR", "緬甸", "Asia", "🇲🇲"], ["LAO", "寮國", "Asia", "🇱🇦"], ["BGD", "孟加拉", "Asia", "🇧🇩"],
+            ["LKA", "斯里蘭卡", "Asia", "🇱🇰"], ["MDV", "馬爾地夫", "Asia", "🇲🇻"], ["NPL", "尼泊爾", "Asia", "🇳🇵"],
+            ["PAK", "巴基斯坦", "Asia", "🇵🇰"], ["AFG", "阿富汗", "Asia", "🇦🇫"], ["IRN", "伊朗", "Asia", "🇮🇷"],
+            ["IRQ", "伊拉克", "Asia", "🇮🇶"], ["SAU", "沙烏地阿拉伯", "Asia", "🇸🇦"], ["ARE", "阿聯酋", "Asia", "🇦🇪"],
+            ["ISR", "以色列", "Asia", "🇮🇱"], ["TUR", "土耳其", "Asia", "🇹🇷"], ["QAT", "卡達", "Asia", "🇶🇦"],
+            ["KWT", "科威特", "Asia", "🇰🇼"], ["JOR", "約旦", "Asia", "🇯🇴"], ["LBN", "黎巴嫩", "Asia", "🇱🇧"],
+            ["OMN", "阿曼", "Asia", "🇴🇲"], ["YEM", "葉門", "Asia", "🇾🇪"], ["SYR", "敘利亞", "Asia", "🇸🇾"],
+            ["KAZ", "哈薩克", "Asia", "🇰🇿"], ["UZB", "烏茲別克", "Asia", "🇺🇿"], ["GEO", "喬治亞", "Asia", "🇬🇪"],
+            ["ARM", "亞美尼亞", "Asia", "🇦🇲"], ["AZE", "亞塞拜然", "Asia", "🇦🇿"],
+            ["GBR", "英國", "Europe", "🇬🇧"], ["FRA", "法國", "Europe", "🇫🇷"], ["DEU", "德國", "Europe", "🇩🇪"],
+            ["ITA", "義大利", "Europe", "🇮🇹"], ["ESP", "西班牙", "Europe", "🇪🇸"], ["PRT", "葡萄牙", "Europe", "🇵🇹"],
+            ["NLD", "荷蘭", "Europe", "🇳🇱"], ["BEL", "比利時", "Europe", "🇧🇪"], ["CHE", "瑞士", "Europe", "🇨🇭"],
+            ["AUT", "奧地利", "Europe", "🇦🇹"], ["SWE", "瑞典", "Europe", "🇸🇪"], ["NOR", "挪威", "Europe", "🇳🇴"],
+            ["DNK", "丹麥", "Europe", "🇩🇰"], ["FIN", "芬蘭", "Europe", "🇫🇮"], ["IRL", "愛爾蘭", "Europe", "🇮🇪"],
+            ["ISL", "冰島", "Europe", "🇮🇸"], ["GRC", "希臘", "Europe", "🇬🇷"], ["POL", "波蘭", "Europe", "🇵🇱"],
+            ["CZE", "捷克", "Europe", "🇨🇿"], ["HUN", "匈牙利", "Europe", "🇭🇺"], ["SVK", "斯洛伐克", "Europe", "🇸🇰"],
+            ["ROU", "羅馬尼亞", "Europe", "🇷🇴"], ["BGR", "保加利亞", "Europe", "🇧🇬"], ["HRV", "克羅埃西亞", "Europe", "🇭🇷"],
+            ["SRB", "塞爾維亞", "Europe", "🇷🇸"], ["BIH", "波士尼亞與赫塞哥維納", "Europe", "🇧🇦"], ["ALB", "阿爾巴尼亞", "Europe", "🇦🇱"],
+            ["MKD", "北馬其頓", "Europe", "🇲🇰"], ["SVN", "斯洛維尼亞", "Europe", "🇸🇮"], ["EST", "愛沙尼亞", "Europe", "🇪🇪"],
+            ["LVA", "拉脫維亞", "Europe", "🇱🇻"], ["LTU", "立陶宛", "Europe", "🇱🇹"], ["BLR", "白俄羅斯", "Europe", "🇧🇾"],
+            ["UKR", "烏克蘭", "Europe", "🇺🇦"], ["RUS", "俄羅斯", "Europe", "🇷🇺"],
+            ["USA", "美國", "Americas", "🇺🇸"], ["CAN", "加拿大", "Americas", "🇨🇦"], ["MEX", "墨西哥", "Americas", "🇲🇽"],
+            ["BRA", "巴西", "Americas", "🇧🇷"], ["ARG", "阿根廷", "Americas", "🇦🇷"], ["CHL", "智利", "Americas", "🇨🇱"],
+            ["PER", "秘魯", "Americas", "🇵🇪"], ["COL", "哥倫比亞", "Americas", "🇨🇴"], ["VEN", "委內瑞拉", "Americas", "🇻🇪"],
+            ["ECU", "厄瓜多", "Americas", "🇪🇨"], ["BOL", "玻利維亞", "Americas", "🇧🇴"], ["PRY", "巴拉圭", "Americas", "🇵🇾"],
+            ["URY", "烏拉圭", "Americas", "🇺🇾"], ["CUB", "古巴", "Americas", "🇨🇺"], ["JAM", "牙買加", "Americas", "🇯🇲"],
+            ["HTI", "海地", "Americas", "🇭🇹"], ["DOM", "多明尼加", "Americas", "🇩🇴"], ["PAN", "巴拿馬", "Americas", "🇵🇦"],
+            ["CRI", "哥斯大黎加", "Americas", "🇨🇷"], ["GTM", "瓜地馬拉", "Americas", "🇬🇹"], ["HND", "宏都拉斯", "Americas", "🇭🇳"],
+            ["SLV", "薩爾瓦多", "Americas", "🇸🇻"], ["NIC", "尼加拉瓜", "Americas", "🇳🇮"], ["PRI", "波多黎各", "Americas", "🇵🇷"],
+            ["AUS", "澳洲", "Oceania", "🇦🇺"], ["NZL", "紐西蘭", "Oceania", "🇳🇿"], ["FJI", "斐濟", "Oceania", "🇫🇯"],
+            ["PNG", "巴布亞紐幾內亞", "Oceania", "🇵🇬"],
+            ["EGY", "埃及", "Africa", "🇪🇬"], ["ZAF", "南非", "Africa", "🇿🇦"], ["NGA", "奈及利亞", "Africa", "🇳🇬"],
+            ["KEN", "肯亞", "Africa", "🇰🇪"], ["MAR", "摩洛哥", "Africa", "🇲🇦"], ["DZA", "阿爾及利亞", "Africa", "🇩🇿"]
+        ];
+
+        offlineData.forEach(item => {
+            const info = { name: item[1], region: item[2], flag: item[3] };
+            countryInfoDB[item[0]] = info; 
+            countryInfoDB[item[1]] = info; 
+        });
+        countryInfoDB["United States of America"] = countryInfoDB["USA"];
+        countryInfoDB["Czech Republic"] = countryInfoDB["CZE"];
+
+        async function loadDatabases() {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = "⏳ 正在下載全球國界資料庫...";
+            
+            try {
+                const geoUrls = [
+                    'https://fastly.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json',
+                    'https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json'
+                ];
+                let geoData = null;
+                for (let url of geoUrls) {
+                    try {
+                        const res = await fetch(url);
+                        if (res.ok) { geoData = await res.json(); break; }
+                    } catch (e) {}
+                }
+                if (!geoData) throw new Error("地圖節點被阻擋");
+                worldGeoJSON = geoData;
+
+                try {
+                    const flagRes = await fetch('https://restcountries.com/v3.1/all');
+                    if (flagRes.ok) {
+                        const countryData = await flagRes.json();
+                        countryData.forEach(c => { 
+                            if(!countryInfoDB[c.cca3]) { 
+                                const info = { name: c.translations?.zho?.common || c.name.common, region: c.region || "其他", flag: c.flag || "🏳️" };
+                                countryInfoDB[c.cca3] = info; 
+                                countryInfoDB[c.name.common] = info;      
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.log("國旗 API 被阻擋，已啟用超級離線字典。");
+                }
+
+                isDatabaseReady = true;
+                statusEl.textContent = "✅ 资料库载入完毕！(離線防護版)";
+                statusEl.style.background = "#e8f5e9";
+                statusEl.style.color = "#2e7d32";
+                document.getElementById('upload').disabled = false;
+                
+                if (compressedCountryPoints.length > 0) {
+                    const btnCalc = document.getElementById('btn-calc');
+                    btnCalc.disabled = false;
+                    btnCalc.textContent = "🌍 點擊結算解鎖國家 (較耗時)";
+                }
+
+            } catch (err) {
+                statusEl.innerHTML = "⚠️ 網路遭阻擋，無法下載地理邊界資料。<br><button onclick='loadDatabases()' style='margin-top:8px; padding:5px 10px;'>🔄 更換節點重試</button>";
+                statusEl.style.background = "#ffebee";
+                statusEl.style.color = "#c62828";
+                document.getElementById('upload').disabled = false;
+            }
+        }
+        
+        loadDatabases();
+
+        const regionTranslator = { "Asia": "🌏 亚洲", "Europe": "🌍 欧洲", "Americas": "🌎 美洲", "Africa": "🌍 非洲", "Oceania": "🌊 大洋洲", "Antarctic": "❄️ 南极洲" };
+
+        L.FogLayer = L.Layer.extend({
+            initialize: function (latlngs) {
+                this._latlngs = latlngs.map(p => L.latLng(p[0], p[1]));
+            },
+            onAdd: function (map) {
+                this._map = map;
+                this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+                this._canvas.style.pointerEvents = 'none';
+                this._ctx = this._canvas.getContext('2d');
+                map.getPanes().overlayPane.appendChild(this._canvas);
+                map.on('moveend', this._update, this);
+                map.on('zoomend', this._update, this);
+                this._update();
+            },
+            onRemove: function (map) {
+                map.getPanes().overlayPane.removeChild(this._canvas);
+                map.off('moveend', this._update, this);
+                map.off('zoomend', this._update, this);
+            },
+            _update: function () {
+                if (!this._map) return;
+                const size = this._map.getSize();
+                this._canvas.width = size.x;
+                this._canvas.height = size.y;
+                L.DomUtil.setPosition(this._canvas, this._map.containerPointToLayerPoint([0, 0]));
+
+                const ctx = this._ctx;
+                
+                // 50% 半透明深色迷霧
+                ctx.fillStyle = 'rgba(25, 30, 40, 0.5)'; 
+                ctx.fillRect(0, 0, size.x, size.y);
+                
+                ctx.globalCompositeOperation = 'destination-out';
+                
+                const centerLatLng = this._map.getCenter();
+                const centerPt = this._map.latLngToContainerPoint(centerLatLng);
+                const edgeLatLng = L.latLng(centerLatLng.lat + 0.0008983, centerLatLng.lng);
+                const edgePt = this._map.latLngToContainerPoint(edgeLatLng);
+                // 真實 100 公尺縮放比例
+                const radiusInPixels = Math.max(3, Math.abs(centerPt.y - edgePt.y) * 1.5);
+                
+                if (this._latlngs.length > 0) {
+                    ctx.fillStyle = 'rgba(0,0,0,1)';
+                    ctx.shadowBlur = radiusInPixels * 0.8;
+                    ctx.shadowColor = 'rgba(0,0,0,1)';
+                    ctx.beginPath();
+                    for (let i = 0; i < this._latlngs.length; i++) {
+                        const p = this._map.latLngToContainerPoint(this._latlngs[i]);
+                        ctx.moveTo(p.x + radiusInPixels, p.y);
+                        ctx.arc(p.x, p.y, radiusInPixels, 0, Math.PI * 2);
+                    }
+                    ctx.fill(); 
+                }
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        });
+
+        let currentFogLayer = null;
+
+        // 純粹檔案處理的 Web Worker (高效且絕不當機)
+        const workerScript = `
+            self.onmessage = async function(e) {
+                const files = e.data;
+                const fogGrid = new Set();
+                const countryGrid = new Set();
+
+                const regexNew = /"(?:point|latLng)"\\s*:\\s*"(-?\\d+\\.\\d+)°,\\s*(-?\\d+\\.\\d+)°"/g;
+                const regexOld = /"latitudeE7"\\s*:\\s*(-?\\d+)\\s*,\\s*"longitudeE7"\\s*:\\s*(-?\\d+)/g;
+
+                function processPoint(lat, lng) {
+                    fogGrid.add(lat.toFixed(3) + ',' + lng.toFixed(3));
+                    countryGrid.add(lat.toFixed(1) + ',' + lng.toFixed(1));
+                }
+
+                function readChunk(file, start, end) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = e => resolve(e.target.result);
+                        reader.onerror = err => reject(err);
+                        reader.readAsText(file.slice(start, end));
+                    });
+                }
+
+                try {
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const chunkSize = 1024 * 1024 * 2; // 2MB
+                        let offset = 0;
+                        let leftover = '';
+
+                        while (offset < file.size) {
+                            const end = Math.min(offset + chunkSize, file.size);
+                            const text = await readChunk(file, offset, end);
+                            const content = leftover + text;
+                            
+                            let match;
+                            while ((match = regexNew.exec(content)) !== null) {
+                                processPoint(parseFloat(match[1]), parseFloat(match[2]));
+                            }
+                            while ((match = regexOld.exec(content)) !== null) {
+                                processPoint(parseInt(match[1]) / 1e7, parseInt(match[2]) / 1e7);
+                            }
+
+                            leftover = content.slice(-200);
+                            offset += chunkSize;
+
+                            const percent = Math.round((offset / file.size) * 100);
+                            if (percent % 10 === 0 || percent === 100) {
+                                self.postMessage({ type: 'progress', msg: \`⚙️ 解析檔案 (\${i+1}/\${files.length})... \${percent}%\` });
+                            }
+                        }
+                    }
+
+                    if (fogGrid.size === 0) {
+                        self.postMessage({ type: 'error', msg: '找不到任何座標！' });
+                        return;
+                    }
+
+                    self.postMessage({ type: 'progress', msg: \`📦 資料壓縮中，準備傳送至畫面...\` });
+
+                    const fogData = Array.from(fogGrid).map(str => {
+                        const parts = str.split(',');
+                        return [parseFloat(parts[0]), parseFloat(parts[1])];
+                    });
+
+                    self.postMessage({ 
+                        type: 'success', 
+                        fogData: fogData,
+                        countryData: Array.from(countryGrid)
+                    });
+
+                } catch (err) {
+                    self.postMessage({ type: 'error', msg: '讀取失敗：' + err.message });
+                }
+            };
+        `;
+        
+        const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
+
+        document.getElementById('upload').addEventListener('change', function(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            const statusText = document.getElementById('status');
+            statusText.textContent = "🚀 啟動背景網格壓縮引擎...";
+            statusText.style.background = "#fff9c4";
+            statusText.style.color = "#f57f17";
+            
+            const btnCalc = document.getElementById('btn-calc');
+            btnCalc.style.display = 'none';
+            btnCalc.disabled = true;
+
+            const worker = new Worker(workerUrl);
+
+            worker.onmessage = function(e) {
+                const result = e.data;
+                
+                if (result.type === 'progress') {
+                    statusText.textContent = result.msg;
+                } 
+                else if (result.type === 'error') {
+                    statusText.textContent = result.msg;
+                    statusText.style.background = "#ffebee";
+                    statusText.style.color = "#c62828";
+                    worker.terminate();
+                } 
+                else if (result.type === 'success') {
+                    const fogPathCoords = result.fogData;
+                    compressedCountryPoints = result.countryData;
+
+                    if (currentFogLayer) map.removeLayer(currentFogLayer);
+                    currentFogLayer = new L.FogLayer(fogPathCoords).addTo(map);
+                    
+                    if(fogPathCoords.length > 0) {
+                        map.setView(fogPathCoords[Math.floor(fogPathCoords.length/2)], 12);
+                    }
+                    
+                    statusText.textContent = `✅ 迷霧清除完成！共點亮 ${fogPathCoords.length} 個區塊。`;
+                    statusText.style.background = "#e8f5e9";
+                    statusText.style.color = "#2e7d32";
+
+                    btnCalc.style.display = 'block';
+                    
+                    if (isDatabaseReady) {
+                        btnCalc.disabled = false;
+                        btnCalc.textContent = "🌍 點擊結算解鎖國家 (較耗時)";
+                        document.getElementById('countries-list').textContent = "👉 點擊上方藍色按鈕開始分析國家。";
+                    } else {
+                        btnCalc.disabled = true;
+                        btnCalc.textContent = "⏳ 等待地理資料庫下載中...";
+                    }
+                    
+                    worker.terminate(); 
+                }
+            };
+
+            worker.postMessage(files);
+        });
+
+        // 國家結算與點擊飛躍功能
+        document.getElementById('btn-calc').addEventListener('click', function() {
+            if (compressedCountryPoints.length === 0) return;
+            if (!isDatabaseReady || !worldGeoJSON) {
+                alert("地理資料庫尚未準備就緒，請稍後再試。");
+                return;
+            }
+
+            this.textContent = "⏳ 全球比對中...";
+            this.disabled = true;
+
+            setTimeout(() => {
+                const visitedRegions = {}; 
+                const foundCountryIds = new Set();
+
+                compressedCountryPoints.forEach(coordStr => {
+                    const [lat, lng] = coordStr.split(',').map(Number);
+                    const pt = turf.point([lng, lat]);
+
+                    for (let feature of worldGeoJSON.features) {
+                        const countryKeyName = feature.properties.name;
+                        if (!foundCountryIds.has(countryKeyName)) {
+                            try {
+                                if (turf.booleanPointInPolygon(pt, feature)) {
+                                    foundCountryIds.add(countryKeyName);
+                                    
+                                    const info = countryInfoDB[feature.id] || countryInfoDB[countryKeyName] || { name: countryKeyName, region: "其他", flag: "🏳️" };
+                                    
+                                    if (!visitedRegions[info.region]) visitedRegions[info.region] = [];
+                                    
+                                    visitedRegions[info.region].push({
+                                        label: `${info.flag} ${info.name}`,
+                                        feature: feature
+                                    });
+                                    break; 
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                });
+
+                document.getElementById('total-countries').textContent = foundCountryIds.size;
+                const countryBox = document.getElementById('countries-list');
+                countryBox.innerHTML = '';
+                countryBox.innerHTML = '<div style="margin-bottom:10px; color:#1976d2; font-weight:bold;">💡 點擊下方按鈕可直接飛往該國家！</div>';
+
+                if (Object.keys(visitedRegions).length > 0) {
+                    Object.keys(visitedRegions).sort().forEach(region => {
+                        const regionDiv = document.createElement('div');
+                        regionDiv.className = 'region-group';
+                        const translatedRegion = regionTranslator[region] || region;
+                        regionDiv.innerHTML = `<div class="region-title">${translatedRegion} (${visitedRegions[region].length})</div>`;
+                        
+                        const tagContainer = document.createElement('div');
+                        
+                        visitedRegions[region].sort((a, b) => a.label.localeCompare(b.label)).forEach(item => {
+                            const span = document.createElement('span');
+                            span.className = 'country-tag';
+                            span.textContent = item.label;
+                            span.title = "點擊以飛躍至此國家";
+                            
+                            span.onclick = () => {
+                                const layer = L.geoJSON(item.feature);
+                                const bounds = layer.getBounds();
+                                map.flyToBounds(bounds, { padding: [20, 20], maxZoom: 6, duration: 1.5 });
+                            };
+                            
+                            tagContainer.appendChild(span);
+                        });
+                        regionDiv.appendChild(tagContainer);
+                        countryBox.appendChild(regionDiv);
+                    });
+                } else {
+                    countryBox.textContent = "未能在陸地上找到匹配的國家。";
+                }
+                
+                this.textContent = "✅ 成就結算完畢！";
+            }, 100);
+        });
+    </script>
+</body>
+</html>
